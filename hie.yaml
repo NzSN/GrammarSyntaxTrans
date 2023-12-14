@@ -1,0 +1,10 @@
+cradle:
+  stack:
+    - path: "./src"
+      component: "GrammarSyntaxTrans:lib"
+
+    - path: "./app/Main.hs"
+      component: "GrammarSyntaxTrans:exe:GrammarSyntaxTrans-exe"
+
+    - path: "./test"
+      component: "GrammarSyntaxTrans:test:GrammarSyntaxTrans-test"
