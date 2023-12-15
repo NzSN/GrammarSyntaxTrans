@@ -1,6 +1,6 @@
 cabal-version: 2.2
 
--- This file has been generated from package.yaml by hpack version 0.35.2.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -25,6 +25,7 @@ source-repository head
 
 library
   exposed-modules:
+      GrammarParser
       Lib
   other-modules:
       Paths_GrammarSyntaxTrans
@@ -35,6 +36,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , parsec
   default-language: Haskell2010
 
 executable GrammarSyntaxTrans-exe
@@ -49,12 +51,14 @@ executable GrammarSyntaxTrans-exe
   build-depends:
       GrammarSyntaxTrans
     , base >=4.7 && <5
+    , parsec
   default-language: Haskell2010
 
 test-suite GrammarSyntaxTrans-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      GrammarParserSpec
       Paths_GrammarSyntaxTrans
   autogen-modules:
       Paths_GrammarSyntaxTrans
@@ -63,5 +67,8 @@ test-suite GrammarSyntaxTrans-test
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       GrammarSyntaxTrans
+    , QuickCheck
     , base >=4.7 && <5
+    , hspec
+    , parsec
   default-language: Haskell2010
