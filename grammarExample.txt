@@ -1,0 +1,247 @@
+additive_operator:
+| `'+'`
+| `'-'`
+
+argument_expression_list:
+| `'('` ( expression ( `','` expression )* `','` ? )? `')'`
+
+assignment_statement/0.1:
+| compound_assignment_operator
+| `'='`
+
+attribute:
+| `'@'` `'align'` `'('` expression `','` ? `')'`
+| `'@'` `'binding'` `'('` expression `','` ? `')'`
+| `'@'` `'builtin'` `'('` expression `','` ? `')'`
+| `'@'` `'compute'`
+| `'@'` `'const'`
+| `'@'` `'diagnostic'` diagnostic_control
+| `'@'` `'fragment'`
+| `'@'` `'group'` `'('` expression `','` ? `')'`
+| `'@'` `'id'` `'('` expression `','` ? `')'`
+| `'@'` `'interpolate'` `'('` expression `','` ? `')'`
+| `'@'` `'interpolate'` `'('` expression `','` expression `','` ? `')'`
+| `'@'` `'invariant'`
+| `'@'` `'location'` `'('` expression `','` ? `')'`
+| `'@'` `'must_use'`
+| `'@'` `'size'` `'('` expression `','` ? `')'`
+| `'@'` `'vertex'`
+| `'@'` `'workgroup_size'` `'('` expression `','` ? `')'`
+| `'@'` `'workgroup_size'` `'('` expression `','` expression `','` ? `')'`
+| `'@'` `'workgroup_size'` `'('` expression `','` expression `','` expression `','` ? `')'`
+
+bitwise_expression.post.unary_expression:
+| `'&'` unary_expression ( `'&'` unary_expression )*
+| `'^'` unary_expression ( `'^'` unary_expression )*
+| `'|'` unary_expression ( `'|'` unary_expression )*
+
+bool_literal:
+| `'false'`
+| `'true'`
+
+case_selector:
+| expression
+| `'default'`
+
+component_or_swizzle_specifier:
+| `'.'` member_ident component_or_swizzle_specifier ?
+| `'.'` swizzle_name component_or_swizzle_specifier ?
+| `'['` expression `']'` component_or_swizzle_specifier ?
+
+compound_assignment_operator:
+| shift_left_assign
+| shift_right_assign
+| `'%='`
+| `'&='`
+| `'*='`
+| `'+='`
+| `'-='`
+| `'/='`
+| `'^='`
+| `'|='`
+
+compound_statement:
+| attribute * `'{'` statement * `'}'`
+
+core_lhs_expression:
+| ident
+| `'('` lhs_expression `')'`
+
+decimal_float_literal:
+| `/0[fh]/`
+| `/[0-9]*\.[0-9]+([eE][+-]?[0-9]+)?[fh]?/`
+| `/[0-9]+[eE][+-]?[0-9]+[fh]?/`
+| `/[0-9]+\.[0-9]*([eE][+-]?[0-9]+)?[fh]?/`
+| `/[1-9][0-9]*[fh]/`
+
+decimal_int_literal:
+| `/0[iu]?/`
+| `/[1-9][0-9]*[iu]?/`
+
+diagnostic_control:
+| `'('` severity_control_name `','` diagnostic_rule_name `','` ? `')'`
+
+diagnostic_rule_name:
+| ident_pattern_token
+| ident_pattern_token `'.'` ident_pattern_token
+
+expression:
+| unary_expression bitwise_expression.post.unary_expression
+| unary_expression relational_expression.post.unary_expression
+| unary_expression relational_expression.post.unary_expression `'&&'` unary_expression relational_expression.post.unary_expression ( `'&&'` unary_expression relational_expression.post.unary_expression )*
+| unary_expression relational_expression.post.unary_expression `'||'` unary_expression relational_expression.post.unary_expression ( `'||'` unary_expression relational_expression.post.unary_expression )*
+
+float_literal:
+| decimal_float_literal
+| hex_float_literal
+
+for_init:
+| ident template_elaborated_ident.post.ident argument_expression_list
+| variable_or_value_statement
+| variable_updating_statement
+
+for_update:
+| ident template_elaborated_ident.post.ident argument_expression_list
+| variable_updating_statement
+
+global_decl:
+| attribute * `'fn'` ident `'('` ( attribute * ident `':'` type_specifier ( `','` param )* `','` ? )? `')'` ( `'->'` attribute * ident template_elaborated_ident.post.ident )? attribute * `'{'` statement * `'}'`
+| attribute * `'var'` ( _template_args_start expression ( `','` expression )* `','` ? _template_args_end )? optionally_typed_ident ( `'='` expression )? `';'`
+| global_value_decl `';'`
+| `';'`
+| `'alias'` ident `'='` ident template_elaborated_ident.post.ident `';'`
+| `'const_assert'` expression `';'`
+| `'struct'` ident `'{'` attribute * member_ident `':'` type_specifier ( `','` attribute * member_ident `':'` type_specifier )* `','` ? `'}'`
+
+global_directive:
+| `'diagnostic'` `'('` severity_control_name `','` diagnostic_rule_name `','` ? `')'` `';'`
+| `'enable'` ident_pattern_token ( `','` ident_pattern_token )* `','` ? `';'`
+| `'requires'` ident_pattern_token ( `','` ident_pattern_token )* `','` ? `';'`
+
+global_value_decl:
+| attribute * `'override'` optionally_typed_ident ( `'='` expression )?
+| `'const'` optionally_typed_ident `'='` expression
+
+hex_float_literal:
+| `/0[xX][0-9a-fA-F]*\.[0-9a-fA-F]+([pP][+-]?[0-9]+[fh]?)?/`
+| `/0[xX][0-9a-fA-F]+[pP][+-]?[0-9]+[fh]?/`
+| `/0[xX][0-9a-fA-F]+\.[0-9a-fA-F]*([pP][+-]?[0-9]+[fh]?)?/`
+
+ident:
+| ident_pattern_token
+
+int_literal:
+| decimal_int_literal
+| hex_int_literal
+
+lhs_expression:
+| core_lhs_expression component_or_swizzle_specifier ?
+| `'&'` lhs_expression
+| `'*'` lhs_expression
+
+literal:
+| bool_literal
+| float_literal
+| int_literal
+
+member_ident: ident_pattern_token
+multiplicative_operator:
+| `'%'`
+| `'*'`
+| `'/'`
+
+optionally_typed_ident:
+| ident ( `':'` type_specifier )?
+
+param:
+| attribute * ident `':'` type_specifier
+
+primary_expression:
+| ident template_elaborated_ident.post.ident
+| ident template_elaborated_ident.post.ident `'('` ( expression ( `','` expression )* `','` ? )? `')'`
+| literal
+| `'('` expression `')'`
+
+relational_expression.post.unary_expression:
+| shift_expression.post.unary_expression
+| shift_expression.post.unary_expression greater_than unary_expression shift_expression.post.unary_expression
+| shift_expression.post.unary_expression greater_than_equal unary_expression shift_expression.post.unary_expression
+| shift_expression.post.unary_expression less_than unary_expression shift_expression.post.unary_expression
+| shift_expression.post.unary_expression less_than_equal unary_expression shift_expression.post.unary_expression
+| shift_expression.post.unary_expression `'!='` unary_expression shift_expression.post.unary_expression
+| shift_expression.post.unary_expression `'=='` unary_expression shift_expression.post.unary_expression
+
+severity_control_name:
+| `'error'`
+| `'info'`
+| `'off'`
+| `'warning'`
+
+shift_expression.post.unary_expression:
+| ( multiplicative_operator unary_expression )* ( additive_operator unary_expression ( multiplicative_operator unary_expression )* )*
+| shift_left unary_expression
+| shift_right unary_expression
+
+statement:
+| attribute * `'for'` `'('` for_init ? `';'` expression ? `';'` for_update ? `')'` compound_statement
+| attribute * `'if'` expression compound_statement ( `'else'` `'if'` expression compound_statement )* ( `'else'` compound_statement )?
+| attribute * `'loop'` attribute * `'{'` statement * ( `'continuing'` attribute * `'{'` statement * ( `'break'` `'if'` expression `';'` )? `'}'` )? `'}'`
+| attribute * `'switch'` expression attribute * `'{'` switch_clause * `'}'`
+| attribute * `'while'` expression compound_statement
+| compound_statement
+| ident template_elaborated_ident.post.ident `'('` ( expression ( `','` expression )* `','` ? )? `')'` `';'`
+| variable_or_value_statement `';'`
+| variable_updating_statement `';'`
+| break_statement `';'`
+| continue_statement `';'`
+| `';'`
+| `'const_assert'` expression `';'`
+| `'discard'` `';'`
+| `'return'` expression ? `';'`
+
+switch_clause:
+| `'case'` case_selector ( `','` case_selector )* `','` ? `':'` ? compound_statement
+| `'default'` `':'` ? compound_statement
+
+swizzle_name:
+| `/[rgba]/`
+| `/[rgba][rgba]/`
+| `/[rgba][rgba][rgba]/`
+| `/[rgba][rgba][rgba][rgba]/`
+| `/[xyzw]/`
+| `/[xyzw][xyzw]/`
+| `/[xyzw][xyzw][xyzw]/`
+| `/[xyzw][xyzw][xyzw][xyzw]/`
+
+template_arg_expression: expression
+template_elaborated_ident.post.ident:
+| ( _template_args_start template_arg_expression ( `','` expression )* `','` ? _template_args_end )?
+
+translation_unit:
+| global_directive * global_decl *
+
+type_specifier:
+| ident ( _template_args_start template_arg_expression ( `','` expression )* `','` ? _template_args_end )?
+
+unary_expression:
+| primary_expression component_or_swizzle_specifier ?
+| `'!'` unary_expression
+| `'&'` unary_expression
+| `'*'` unary_expression
+| `'-'` unary_expression
+| `'~'` unary_expression
+
+variable_decl:
+| `'var'` ( _template_args_start expression ( `','` expression )* `','` ? _template_args_end )? optionally_typed_ident
+
+variable_or_value_statement:
+| variable_decl
+| variable_decl `'='` expression
+| `'const'` optionally_typed_ident `'='` expression
+| `'let'` optionally_typed_ident `'='` expression
+
+variable_updating_statement:
+| lhs_expression ( `'='` | compound_assignment_operator ) expression
+| lhs_expression `'++'`
+| lhs_expression `'--'`
+| `'_'` `'='` expression
