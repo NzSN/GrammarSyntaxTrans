@@ -78,4 +78,10 @@ spec_intro = hspec $ do
          Just r -> r `shouldBe` expectRules
 
     it "Rule with qualifier" $ do
+      let sourceCode = "stmts: stmt*"
+          rule = parseGrammar sourceCode
+          expectRules = []
+      case rule of
+         Nothing -> rule `shouldNotBe` Nothing
+         Just r -> r `shouldBe` expectRules
       error "Need to implement" :: IO ()
