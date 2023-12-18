@@ -76,3 +76,6 @@ spec_intro = hspec $ do
        case rule of
          Nothing -> rule `shouldNotBe` Nothing
          Just r -> r `shouldBe` expectRules
+
+    it "Rule with qualifier" $ do
+      error "Need to implement" :: IO ()
