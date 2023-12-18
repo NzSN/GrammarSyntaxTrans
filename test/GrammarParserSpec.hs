@@ -59,3 +59,20 @@ spec_intro = hspec $ do
       case rule of
         Nothing -> rule `shouldNotBe` Nothing
         Just r -> r `shouldBe` expectRules
+
+    it "Rule contain interior" $ do
+       let sourceCode = "arith_operator: \n\
+                         \| plus         \n\
+                         \| minus        \n\
+                         \| mul          \n\
+                         \| div"
+           rule = parseGrammar sourceCode
+           expectRules = [Rule "arith_operator"
+                            [RExpr [SubExpr "plus" Nothing],
+                             RExpr [SubExpr "minus" Nothing],
+                             RExpr [SubExpr "mul" Nothing],
+                             RExpr [SubExpr "div" Nothing]]]
+
+       case rule of
+         Nothing -> rule `shouldNotBe` Nothing
+         Just r -> r `shouldBe` expectRules
