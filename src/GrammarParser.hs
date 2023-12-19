@@ -38,7 +38,8 @@ data Rule = Rule {
             deriving (Show, Eq)
 
 grammarFile :: GenParser Char st [Rule]
-grammarFile = many1 rule
+grammarFile = do
+  many1 rule
 
 eol :: GenParser Char st Char
 eol = try (char '\n')
@@ -59,7 +60,15 @@ rule = do
   Rule ruleID <$> ruleExprs
 
 ruleExprs :: GenParser Char st [RuleExpr]
-ruleExprs = try alternativeExprs <|> singleExpr
+ruleExprs = do
+  expr <- try alternativeExprs <|> singleExpr
+
+  -- Gurantee that all characters of the parsed
+  -- is consumed
+  skipMany (try spaces'')
+  skipMany (try eol)
+
+  return expr
 
 singleExpr :: GenParser Char st [RuleExpr]
 singleExpr = do
@@ -123,8 +132,29 @@ literalElem = do
 
 subExprElem :: GenParser Char st (Maybe RuleExpr)
 subExprElem = do
-  n <- many1 (noneOf " \t\n")
-  return $ Just $ SubExpr n Nothing
+  n <- many1 (noneOf " \t\n*?+")
+
+  _ <- skipMany (try spaces'')
+
+  -- Qualifier may exists
+  qualifier <- try qualifierElem <|>
+               return Nothing
+
+  return $ Just $ SubExpr n qualifier
+
+qualifierElem :: GenParser Char st (Maybe Qualifier)
+qualifierElem = do
+  q <- try (char '*') <|>
+       try (char '+') <|>
+       try (char '?') <|>
+       return ' '
+
+  case q of
+    '*' -> return $ Just Asterisk
+    '+' -> return $ Just Plus
+    '?' -> return $ Just QuestionMark
+    _   -> return Nothing
+
 
 parseGrammar' :: String -> Either ParseError [Rule]
 parseGrammar' = parse grammarFile "(unknown)"

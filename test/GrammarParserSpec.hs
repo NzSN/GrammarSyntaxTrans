@@ -1,7 +1,7 @@
 module GrammarParserSpec (spec) where
 
 import Test.Hspec
-import GrammarParser (parseGrammar, Rule(..), RuleExpr(..))
+import GrammarParser (parseGrammar, Rule(..), RuleExpr(..), Qualifier(..))
 
 spec :: IO ()
 spec = do
@@ -78,10 +78,19 @@ spec_intro = hspec $ do
          Just r -> r `shouldBe` expectRules
 
     it "Rule with qualifier" $ do
-      let sourceCode = "stmts: stmt*"
+      let sourceCode = "stmts: stmt*           \n\
+                       \atLeastOneStmts: stmt+ \n\
+                       \zeroOrOneStmts: stmt  ?"
           rule = parseGrammar sourceCode
-          expectRules = []
+          expectRules = [-- stmts
+                         Rule "stmts"
+                         [RExpr [SubExpr "stmt" $ Just Asterisk]],
+                         -- atLeastOneStmts
+                         Rule "atLeastOneStmts"
+                         [RExpr [SubExpr "stmt" $ Just Plus]],
+                         -- zeroOrOneStmts
+                         Rule "zeroOrOneStmts"
+                         [RExpr [SubExpr "stmt" $ Just QuestionMark]]]
       case rule of
          Nothing -> rule `shouldNotBe` Nothing
          Just r -> r `shouldBe` expectRules
-      error "Need to implement" :: IO ()
