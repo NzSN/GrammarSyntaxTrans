@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
+-- TODO: Support of parsing regex in grammar
+
 module GrammarParser (
   Rule(..),
   Qualifier(..),
