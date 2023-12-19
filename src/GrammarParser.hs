@@ -26,10 +26,12 @@ data Qualifier = Asterisk     -- Occurs zero or more times
 
 data RuleExpr = RExpr { exprs :: ![RuleExpr] }
               | SubExpr { exprName :: !String,
-                          qualifier :: !(Maybe Qualifier)
-                        }
+                          qualifier :: !(Maybe Qualifier) }
               | Literal { literalVal :: !String,
                           qualifier :: !(Maybe Qualifier) }
+              | Regex { regexVal :: !String }
+              | Group { groupExprs :: ![RuleExpr],
+                        qualifier :: !(Maybe Qualifier) }
               deriving (Show, Eq)
 
 -- Internal datastructures for grammar rules
@@ -118,11 +120,11 @@ exprElems = do
 exprElem :: GenParser Char st (Maybe RuleExpr)
 exprElem = do
   skipMany (try spaces'')
-  e <- try literalElem
-       <|> try subExprElem
-       <|> return Nothing
-
-  return e
+  try literalElem
+    <|> try subExprElem
+    <|> try regexElem
+    <|> try groupElem
+    <|> return Nothing
 
 literalElem :: GenParser Char st (Maybe RuleExpr)
 literalElem = do
@@ -130,11 +132,15 @@ literalElem = do
   literalStr <- many (noneOf "'`")
   _ <- string "'`"
 
-  return $ Just $ Literal literalStr Nothing
+  _ <- skipMany (try spaces'')
+  qualifier <- try qualifierElem <|>
+               return Nothing
+
+  return $ Just $ Literal literalStr qualifier
 
 subExprElem :: GenParser Char st (Maybe RuleExpr)
 subExprElem = do
-  n <- many1 (noneOf " \t\n*?+")
+  n <- many1 (noneOf " \t\n*?+()'`<>")
 
   _ <- skipMany (try spaces'')
 
@@ -144,12 +150,40 @@ subExprElem = do
 
   return $ Just $ SubExpr n qualifier
 
+regexElem :: GenParser Char st (Maybe RuleExpr)
+regexElem = do
+  -- Assume that there are no escapes
+  _ <- string "`/"
+  regex <- many (noneOf "/")
+  _ <- string "/`"
+
+  return $ Just $ Regex regex
+
+groupElem :: GenParser Char st (Maybe RuleExpr)
+groupElem = do
+  _ <- char '('
+
+  skipMany (try spaces'')
+
+  exprs <- exprElems
+  trace (show exprs) $ return Nothing
+
+  skipMany (try spaces'')
+  _ <- char ')'
+
+  _ <- skipMany (try spaces'')
+
+  qualifier <- try qualifierElem <|>
+               return Nothing
+
+  return $ Just $ Group exprs qualifier
+
 qualifierElem :: GenParser Char st (Maybe Qualifier)
 qualifierElem = do
   q <- try (char '*') <|>
        try (char '+') <|>
        try (char '?') <|>
-       return ' '
+       parserZero
 
   case q of
     '*' -> return $ Just Asterisk

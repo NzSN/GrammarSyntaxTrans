@@ -94,3 +94,42 @@ spec_intro = hspec $ do
       case rule of
          Nothing -> rule `shouldNotBe` Nothing
          Just r -> r `shouldBe` expectRules
+
+    it "Rule with Regex" $ do
+      let sourceCode =
+            "swizzle_name: \n\
+            \| `/[rgba]/` \n\
+            \| `/[rgba][rgba]/` \n\
+            \| `/[rgba][rgba][rgba]/` \n\
+            \| `/[rgba][rgba][rgba][rgba]/`"
+          rule = parseGrammar sourceCode
+          expectRules = [Rule "swizzle_name"
+                         [RExpr [Regex "[rgba]"],
+                          RExpr [Regex "[rgba][rgba]"],
+                          RExpr [Regex "[rgba][rgba][rgba]"],
+                          RExpr [Regex "[rgba][rgba][rgba][rgba]"]
+                          ]]
+      case rule of
+         Nothing -> rule `shouldNotBe` Nothing
+         Just r -> r `shouldBe` expectRules
+
+    it "Rule with Regex and Paren" $ do
+      let sourceCode =
+            "template_elaborated_ident.post.ident: \n\
+            \| ( _template_args_start template_arg_expression ( `','` expression )* `','` ? _template_args_end )?"
+          rule = parseGrammar sourceCode
+          expectRules = [
+            Rule "template_elaborated_ident.post.ident"
+                [RExpr [Group [SubExpr "_template_args_start" Nothing,
+                               SubExpr "template_arg_expression" Nothing,
+                               Group [Literal "," Nothing,
+                                      SubExpr "expression" Nothing] $ Just Asterisk,
+                               Literal "," $ Just QuestionMark,
+                               SubExpr "_template_args_end" Nothing
+                              ] $ Just QuestionMark]
+                ]
+            ]
+
+      case rule of
+         Nothing -> rule `shouldNotBe` Nothing
+         Just r -> r `shouldBe` expectRules
