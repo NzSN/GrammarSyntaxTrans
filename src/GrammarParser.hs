@@ -1,17 +1,21 @@
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
--- TODO: Support of parsing regex in grammar
-
 module GrammarParser (
   Rule(..),
   Qualifier(..),
   RuleExpr(..),
   parseGrammar) where
 
-import Debug.Trace (trace)
 import Data.Maybe
 import Text.Parsec
 import Text.Parsec.String
+
+newtype SpaceOutT m a = SpaceOutT { runSpaceOutT :: m a }
+instance Functor m => Functor (SpaceOutT m) where
+  fmap f (SpaceOutT a) = undefined
+instance Applicative m => Applicative (SpaceOutT m) where
+  pure a = undefined
+  (SpaceOutT )
 
 -- A rule may be qualified by some operator
 -- for example,
@@ -32,6 +36,7 @@ data RuleExpr = RExpr { exprs :: ![RuleExpr] }
               | Regex { regexVal :: !String }
               | Group { groupExprs :: ![RuleExpr],
                         qualifier :: !(Maybe Qualifier) }
+              | Alter { choices :: ![RuleExpr] }
               deriving (Show, Eq)
 
 -- Internal datastructures for grammar rules
@@ -53,8 +58,8 @@ spaces'' = char ' ' <|> char '\t'
 
 rule :: GenParser Char st Rule
 rule = do
-
-  ruleID <- many1 (noneOf ":")
+  skipMany (try spaces'')
+  ruleID <- many1 (noneOf "")
 
   -- Discard unused characters
   string ":"
@@ -77,7 +82,6 @@ ruleExprs = do
 singleExpr :: GenParser Char st [RuleExpr]
 singleExpr = do
   skipMany (try spaces'')
-  skipMany (try eol)
 
   expr <- exprElems
 
@@ -109,22 +113,24 @@ exprElems = do
     -- No more elements
     then return []
     else do
-
       -- Spaces may exists between expression elements
       skipMany (try spaces'')
-
       remain <- exprElems
-
       return $ fromJust e : remain
 
 exprElem :: GenParser Char st (Maybe RuleExpr)
 exprElem = do
   skipMany (try spaces'')
-  try literalElem
-    <|> try subExprElem
-    <|> try regexElem
-    <|> try groupElem
-    <|> return Nothing
+  elem <- try literalElem
+          <|> try subExprElem
+          <|> try regexElem
+          <|> try groupElem
+          <|> return Nothing
+
+  -- lookahead one more elem
+
+  return elem
+
 
 literalElem :: GenParser Char st (Maybe RuleExpr)
 literalElem = do
@@ -166,7 +172,6 @@ groupElem = do
   skipMany (try spaces'')
 
   exprs <- exprElems
-  trace (show exprs) $ return Nothing
 
   skipMany (try spaces'')
   _ <- char ')'
@@ -190,6 +195,11 @@ qualifierElem = do
     '+' -> return $ Just Plus
     '?' -> return $ Just QuestionMark
     _   -> return Nothing
+
+alterElem :: GenParser Char st (Maybe RuleExpr)
+alterElem = undefined
+
+
 
 
 parseGrammar' :: String -> Either ParseError [Rule]

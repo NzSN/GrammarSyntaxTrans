@@ -133,3 +133,19 @@ spec_intro = hspec $ do
       case rule of
          Nothing -> rule `shouldNotBe` Nothing
          Just r -> r `shouldBe` expectRules
+
+    it "Rule with alternative ( | )" $ do
+      let sourceCode = "variable_updating_statement:  \n\
+                       \| lhs_expression ( `'='` | compound_assignment_operator ) expression"
+          rule = parseGrammar sourceCode
+          expectRules = [Rule "variable_updating_statement"
+                         [RExpr [SubExpr "lhs_expression" Nothing,
+                                Group [Group [Literal "=" Nothing, SubExpr "compound_assignment_operator" Nothing] Nothing] Nothing,
+                                SubExpr "expression" Nothing
+                                ]
+                         ]
+                        ]
+
+      case rule of
+         Nothing -> rule `shouldNotBe` Nothing
+         Just r -> r `shouldBe` expectRules
