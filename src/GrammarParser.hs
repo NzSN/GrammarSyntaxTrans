@@ -10,13 +10,6 @@ import Data.Maybe
 import Text.Parsec
 import Text.Parsec.String
 
-newtype SpaceOutT m a = SpaceOutT { runSpaceOutT :: m a }
-instance Functor m => Functor (SpaceOutT m) where
-  fmap f (SpaceOutT a) = undefined
-instance Applicative m => Applicative (SpaceOutT m) where
-  pure a = undefined
-  (SpaceOutT )
-
 -- A rule may be qualified by some operator
 -- for example,
 --   statements:
@@ -36,7 +29,7 @@ data RuleExpr = RExpr { exprs :: ![RuleExpr] }
               | Regex { regexVal :: !String }
               | Group { groupExprs :: ![RuleExpr],
                         qualifier :: !(Maybe Qualifier) }
-              | Alter { choices :: ![RuleExpr] }
+              | Vertical
               deriving (Show, Eq)
 
 -- Internal datastructures for grammar rules
@@ -59,7 +52,7 @@ spaces'' = char ' ' <|> char '\t'
 rule :: GenParser Char st Rule
 rule = do
   skipMany (try spaces'')
-  ruleID <- many1 (noneOf "")
+  ruleID <- many1 (noneOf ":")
 
   -- Discard unused characters
   string ":"
@@ -106,31 +99,30 @@ alternativeExprs = do
       return $ RExpr expr : exprs
 
 exprElems :: GenParser Char st [RuleExpr]
-exprElems = do
-  e <- exprElem
+exprElems = exprElems'
+  where
+    exprElems' :: GenParser Char st [RuleExpr]
+    exprElems' = do
+      e <- exprElem
 
-  if isNothing e
-    -- No more elements
-    then return []
-    else do
-      -- Spaces may exists between expression elements
-      skipMany (try spaces'')
-      remain <- exprElems
-      return $ fromJust e : remain
+      if isNothing e
+        -- No more elements
+        then return []
+        else do
+          -- Spaces may exists between expression elements
+          skipMany (try spaces'')
+          remain <- exprElems
+          return $ fromJust e : remain
 
 exprElem :: GenParser Char st (Maybe RuleExpr)
 exprElem = do
   skipMany (try spaces'')
-  elem <- try literalElem
-          <|> try subExprElem
-          <|> try regexElem
-          <|> try groupElem
-          <|> return Nothing
-
-  -- lookahead one more elem
-
-  return elem
-
+  try literalElem
+    <|> try subExprElem
+    <|> try regexElem
+    <|> try groupElem
+    <|> try alterElem
+    <|> return Nothing
 
 literalElem :: GenParser Char st (Maybe RuleExpr)
 literalElem = do
@@ -146,7 +138,7 @@ literalElem = do
 
 subExprElem :: GenParser Char st (Maybe RuleExpr)
 subExprElem = do
-  n <- many1 (noneOf " \t\n*?+()'`<>")
+  n <- many1 (noneOf " \t\n*?+()'`<>|")
 
   _ <- skipMany (try spaces'')
 
@@ -197,9 +189,12 @@ qualifierElem = do
     _   -> return Nothing
 
 alterElem :: GenParser Char st (Maybe RuleExpr)
-alterElem = undefined
+alterElem = do
+  vertical <- char '|' <|> parserZero
 
-
+  case vertical of
+    '|' -> return $ Just $ Vertical
+    _   -> return Nothing
 
 
 parseGrammar' :: String -> Either ParseError [Rule]

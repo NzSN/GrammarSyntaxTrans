@@ -140,7 +140,7 @@ spec_intro = hspec $ do
           rule = parseGrammar sourceCode
           expectRules = [Rule "variable_updating_statement"
                          [RExpr [SubExpr "lhs_expression" Nothing,
-                                Group [Group [Literal "=" Nothing, SubExpr "compound_assignment_operator" Nothing] Nothing] Nothing,
+                                Group [Literal "=" Nothing, Vertical, SubExpr "compound_assignment_operator" Nothing] Nothing,
                                 SubExpr "expression" Nothing
                                 ]
                          ]
