@@ -37,6 +37,7 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , cmdargs
     , mtl
     , parsec
   default-language: Haskell2010
@@ -53,6 +54,7 @@ executable GrammarSyntaxTrans-exe
   build-depends:
       GrammarSyntaxTrans
     , base >=4.7 && <5
+    , cmdargs
     , mtl
     , parsec
   default-language: Haskell2010
@@ -73,6 +75,7 @@ test-suite GrammarSyntaxTrans-test
       GrammarSyntaxTrans
     , QuickCheck
     , base >=4.7 && <5
+    , cmdargs
     , hspec
     , mtl
     , parsec
