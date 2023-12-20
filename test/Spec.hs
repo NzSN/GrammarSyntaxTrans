@@ -1,5 +1,7 @@
 import qualified GrammarParserSpec
+import qualified AntlrGrammarSpec
 
 main :: IO ()
-main =
+main = do
   GrammarParserSpec.spec
+  AntlrGrammarSpec.spec
