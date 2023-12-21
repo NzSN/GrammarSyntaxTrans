@@ -1,7 +1,7 @@
 module AntlrGrammarSpec where
 
 import Test.Hspec
-import GrammarParser (parseGrammar, Rule(..), RuleExpr(..), Qualifier(..))
+import GrammarParser (parseGrammar)
 import TargetGrammar.AntlrGrammar (AntlrRepr(AntlrRepr))
 
 spec :: IO ()
@@ -21,9 +21,10 @@ spec_intro = hspec $ do
         Nothing -> rule `shouldNotBe` Nothing
         Just r -> do
           let repr = AntlrRepr r
-          print $ show repr
+          noSpaces (show repr) `shouldBe`
+            noSpaces "additive_operator: \n  '+'   \n| '-'   ;\n\n"
 
-    it "Single literal" $ do
+    it "Group" $ do
       let sourceCode =
             "argument_expression_list: `'('` ( expression ( `','` expression )* `','` ? )? `')'`"
           rule = parseGrammar sourceCode
@@ -31,4 +32,8 @@ spec_intro = hspec $ do
         Nothing -> rule `shouldNotBe` Nothing
         Just r -> do
           let repr = AntlrRepr r
-          print $ show repr
+          noSpaces (show repr) `shouldBe`
+            noSpaces "argument_expression_list:'(' (expression  (','  expression )* ','? )? ')'  ;\n\n"
+  where
+    noSpaces :: String -> String
+    noSpaces = filter (\x -> x /= ' ' && x /= '\n')
