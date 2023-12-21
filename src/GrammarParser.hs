@@ -4,11 +4,16 @@ module GrammarParser (
   Rule(..),
   Qualifier(..),
   RuleExpr(..),
-  parseGrammar) where
+  parseGrammar,
+  ruleTraverse) where
 
 import Data.Maybe
 import Text.Parsec
 import Text.Parsec.String
+
+-------------------------------------------------------------------------------
+--                        Rule Internal Representation                       --
+-------------------------------------------------------------------------------
 
 -- A rule may be qualified by some operator
 -- for example,
@@ -21,23 +26,57 @@ data Qualifier = Asterisk     -- Occurs zero or more times
                | QuestionMark -- Occurs zoer or one times
                deriving (Show, Eq)
 
-data RuleExpr = RExpr { exprs :: ![RuleExpr] }
-              | SubExpr { exprName :: !String,
-                          qualifier :: !(Maybe Qualifier) }
+data RuleExpr = RExpr { exprs        :: ![RuleExpr] }
+              | SubExpr { exprName   :: !String,
+                          qualifier  :: !(Maybe Qualifier) }
               | Literal { literalVal :: !String,
-                          qualifier :: !(Maybe Qualifier) }
-              | Regex { regexVal :: !String }
-              | Group { groupExprs :: ![RuleExpr],
-                        qualifier :: !(Maybe Qualifier) }
+                          qualifier  :: !(Maybe Qualifier) }
+              | Regex { regexVal     :: !String }
+              | Group { groupExprs   :: ![RuleExpr],
+                        qualifier    :: !(Maybe Qualifier) }
               | Vertical
               deriving (Show, Eq)
 
 -- Internal datastructures for grammar rules
 -- that shown in grammarExample.txt
 data Rule = Rule {
-                name :: !String,
-                expr :: ![RuleExpr] }
+                name       :: !String,
+                expr       :: ![RuleExpr],
+                isTerminal :: !Bool }
             deriving (Show, Eq)
+
+ruleTraverse :: Monoid b => Rule -> (RuleExpr -> b) -> Maybe b
+ruleTraverse r = doTraverse (expr r)
+  where
+    doTraverse :: Monoid b => [RuleExpr] -> (RuleExpr -> b) -> Maybe b
+    -- The only meaning of Nothing here is traverse
+    -- to bottom of RuleExpr.
+    doTraverse [] _ = Nothing
+    doTraverse (r':rs') f =
+      let remain = doTraverse rs' f
+      in case remain of
+           Nothing -> ruleExprTraverse r' f
+           Just x  -> ruleExprTraverse r' f >>=
+                        \y -> Just $ y <> x
+
+    ruleExprTraverse :: Monoid b => RuleExpr -> (RuleExpr -> b) -> Maybe b
+    ruleExprTraverse r' f' =
+      case r' of
+        RExpr e   -> doTraverse e f'
+        Group e _ -> doTraverse e f'
+        _         -> Just $ f' r'
+
+-------------------------------------------------------------------------------
+--                             Grammar Definition                            --
+-------------------------------------------------------------------------------
+isTerminal' :: RuleExpr -> [Bool]
+isTerminal' r =
+  case r of
+    SubExpr _ _ -> [False]
+    Literal _ _ -> [True]
+    Regex _     -> [True]
+    Vertical    -> [True]
+    _           -> [True]
 
 grammarFile :: GenParser Char st [Rule]
 grammarFile = do
@@ -59,7 +98,13 @@ rule = do
     >> skipMany (try spaces'')
     >> skipMany (try eol)
 
-  Rule ruleID <$> ruleExprs
+  rule <- flip (Rule ruleID) True <$> ruleExprs
+
+  -- Determine the type of rule
+  let isTerm = foldl (&&) True $
+        fromJust (ruleTraverse rule isTerminal')
+
+  return $ rule { isTerminal = isTerm }
 
 ruleExprs :: GenParser Char st [RuleExpr]
 ruleExprs = do

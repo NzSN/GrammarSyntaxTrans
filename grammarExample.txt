@@ -5,7 +5,7 @@ additive_operator:
 argument_expression_list:
 | `'('` ( expression ( `','` expression )* `','` ? )? `')'`
 
-assignment_statement/0.1:
+assignment_statement:
 | compound_assignment_operator
 | `'='`
 
