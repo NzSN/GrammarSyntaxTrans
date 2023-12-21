@@ -18,7 +18,7 @@ display ar = display' $ rules ar
           r_body = if length (expr r) == 1
                      then displayRuleExpr $ expr r
                           -- Manually deal with the first rule expression
-                     else displayRuleExpr (expr r) ++ "\n" ++
+                     else "\n  " ++ displayRuleExpr [head $ expr r] ++
                           displayRuleExprs (tail $ expr r)
       in r_name ++ r_body ++ ruleSep ++ display' rs
     display' [] = ""
@@ -27,16 +27,15 @@ display ar = display' $ rules ar
     displayRuleExprs :: [RuleExpr] -> String
     displayRuleExprs (r:rs) =
       let r_str = displayRuleExpr [r]
-      in  "| " ++ r_str ++ displayRuleExprs rs
+      in  "\n| " ++ r_str ++ displayRuleExprs rs
     displayRuleExprs [] = ""
 
     displayRuleExpr :: [RuleExpr] -> String
     displayRuleExpr [] = ""
-    displayRuleExpr (r:rs) =
+    displayRuleExpr (r:rs) = do
       case r of
         RExpr (r':rs')           ->
           displayRuleExpr [r'] ++ " " ++ displayRuleExpr rs'
-        RExpr []                 -> ""
         SubExpr name qualifier ->
           case qualifier of
             Just Asterisk     -> name ++ "*"
@@ -49,13 +48,25 @@ display ar = display' $ rules ar
             Just Plus         -> "'" ++ val ++ "'" ++ "+"
             Just QuestionMark -> "'" ++ val ++ "'" ++ "?"
             Nothing           -> "'" ++ val ++ "'"
-        Regex val              -> "Regex"
+        Regex val              -> "'/" ++ val ++ "/'"
         Group (r':rs') qualifier ->
-          "(" ++ displayRuleExpr [r'] ++ " " ++ displayRuleExpr rs'  ++ ")"
-        Group [] qualifier -> ""
+          "("
+            ++ displayRuleExpr [r']
+            ++ " "
+            ++ displayRuleExpr rs'
+            ++ ")"
+            ++ appendQualifier qualifier
+          where
+            appendQualifier :: Maybe Qualifier -> String
+            appendQualifier q = do
+              case q of
+                Just Asterisk     -> "*"
+                Just Plus         -> "+"
+                Just QuestionMark -> "?"
+                Nothing           -> ""
         Vertical               -> "|"
 
-
+        ++ " " ++ displayRuleExpr rs
 
 instance Show AntlrRepr where
   show = display

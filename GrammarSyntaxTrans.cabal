@@ -26,7 +26,6 @@ source-repository head
 library
   exposed-modules:
       GrammarParser
-      Lib
       TargetGrammar.AntlrGrammar
   other-modules:
       Paths_GrammarSyntaxTrans

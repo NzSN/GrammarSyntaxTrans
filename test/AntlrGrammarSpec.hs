@@ -22,3 +22,13 @@ spec_intro = hspec $ do
         Just r -> do
           let repr = AntlrRepr r
           print $ show repr
+
+    it "Single literal" $ do
+      let sourceCode =
+            "argument_expression_list: `'('` ( expression ( `','` expression )* `','` ? )? `')'`"
+          rule = parseGrammar sourceCode
+      case rule of
+        Nothing -> rule `shouldNotBe` Nothing
+        Just r -> do
+          let repr = AntlrRepr r
+          print $ show repr
