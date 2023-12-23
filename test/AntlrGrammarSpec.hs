@@ -2,7 +2,7 @@ module AntlrGrammarSpec where
 
 import Test.Hspec
 import GrammarParser (parseGrammar)
-import TargetGrammar.AntlrGrammar (AntlrRepr(AntlrRepr))
+import TargetGrammar.AntlrGrammar (AntlrRepl(AntlrRepl))
 
 spec :: IO ()
 spec = do
@@ -20,7 +20,7 @@ spec_intro = hspec $ do
       case rule of
         Nothing -> rule `shouldNotBe` Nothing
         Just r -> do
-          let repr = AntlrRepr r
+          let repr = AntlrRepl r
           noSpaces (show repr) `shouldBe`
             noSpaces "additive_operator: \n  '+'   \n| '-'   ;\n\n"
 
@@ -31,7 +31,7 @@ spec_intro = hspec $ do
       case rule of
         Nothing -> rule `shouldNotBe` Nothing
         Just r -> do
-          let repr = AntlrRepr r
+          let repr = AntlrRepl r
           noSpaces (show repr) `shouldBe`
             noSpaces "argument_expression_list:'(' (expression  (','  expression )* ','? )? ')'  ;\n\n"
   where

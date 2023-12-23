@@ -101,7 +101,7 @@ display =
           filter $ \x -> isTerminal x && isUpper (head $ name x)
 
         toAntlrTerminalForm :: ([Rule],[Rule]) -> [Rule]
-        toAntlrTerminalForm =
+        toAntlrTerminalForm = undefined
 
 instance Show AntlrRepl where
   show = display
