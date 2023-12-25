@@ -5,7 +5,8 @@ module GrammarParser (
   Qualifier(..),
   RuleExpr(..),
   parseGrammar,
-  ruleTraverse) where
+  ruleTraverse,
+  mapRule) where
 
 import Data.Maybe
 import Text.Parsec
@@ -45,6 +46,19 @@ data Rule = Rule {
                 isTerminal :: !Bool }
             deriving (Show, Eq)
 
+mapRule :: (RuleExpr -> RuleExpr) -> Rule -> Rule
+mapRule f r = r { expr = map (traverse f) (expr r) }
+  where
+    traverse :: (RuleExpr -> RuleExpr) -> RuleExpr -> RuleExpr
+    traverse f' r' =
+      case r' of
+        RExpr es    -> RExpr $ map (traverse f) es
+        SubExpr _ _ -> f' r'
+        Literal _ _ -> f' r'
+        Regex   _   -> f' r'
+        Group es q  -> Group (map (traverse f) es) q
+        Vertical    -> f' r'
+
 ruleTraverse :: Monoid b => Rule -> (RuleExpr -> b) -> Maybe b
 ruleTraverse r = doTraverse (expr r)
   where
@@ -52,11 +66,11 @@ ruleTraverse r = doTraverse (expr r)
     -- The only meaning of Nothing here is traverse
     -- to bottom of RuleExpr.
     doTraverse [] _ = Nothing
-    doTraverse (r':rs') f =
-      let remain = doTraverse rs' f
+    doTraverse (r':rs') f' =
+      let remain = doTraverse rs' f'
       in case remain of
-           Nothing -> ruleExprTraverse r' f
-           Just x  -> ruleExprTraverse r' f >>=
+           Nothing -> ruleExprTraverse r' f'
+           Just x  -> ruleExprTraverse r' f' >>=
                         \y -> Just $ y <> x
 
     ruleExprTraverse :: Monoid b => RuleExpr -> (RuleExpr -> b) -> Maybe b
