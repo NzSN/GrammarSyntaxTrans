@@ -35,20 +35,33 @@ spec_intro = hspec $ do
             noSpaces "argument_expression_list:'(' (expression  (','  expression )* ','? )? ')'  ;\n\n"
 
     it "illTermWithRefs" $ do
-      let sourceCode = "additive_operator:  \n\
-                       \| `'+'`             \n\
-                       \| `'-'`             \n\
-                       \op: `'++'`          \n\
-                       \expr: additive_operator op"
+      let sourceCode = "additive_operator:         \n\
+                       \| `'+'`                    \n\
+                       \| `'-'`                    \n\
+                       \op: `'++'`                 \n\
+                       \expr: additive_operator op \n\
+                       \irrelevant: anotherExpr"
           rule = parseGrammar sourceCode
       case rule of
         Nothing -> rule `shouldNotBe` Nothing
         Just r -> do
           let repr = AntlrRepl r
           noSpaces (show repr) `shouldBe`
-            noSpaces "Additive_operator: \n  '+'   \n| '-'   ;\n\n Op: '++' ;\n\n expr: Additive_operator Op;"
+            noSpaces "Additive_operator: \n  '+'   \n| '-'   ;\n\n Op: '++' ;\n\n expr: Additive_operator Op;\n\n irrelevant: anotherExpr;"
 
     it "RuleNameContainDots" $ do
+      let sourceCode = "additive.operator:  \n\
+                       \| `'+'` \n\
+                       \| expression "
+          rule = parseGrammar sourceCode
+      case rule of
+        Nothing -> rule `shouldNotBe` Nothing
+        Just r -> do
+          let repr = AntlrRepl r
+          noSpaces (show repr) `shouldBe`
+            noSpaces "additive_operator: \n  '+'   \n| expression   ;\n\n"
+
+    it "RuleNameContainDots_Multiple_Fixer" $ do
       let sourceCode = "additive.operator:  \n\
                        \| `'+'` \n\
                        \| `'-'` "

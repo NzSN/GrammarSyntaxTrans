@@ -5,7 +5,9 @@
 -- parsed by Antlr4.
 module TargetGrammar.AntlrGrammar (AntlrRepl(..), display) where
 
-import Debug.Trace (trace)
+import qualified Data.Bifunctor as BiF
+import qualified Data.Set as S
+import qualified Data.List as List
 import Data.Function
 import Data.Char
 import Control.Arrow
@@ -25,35 +27,68 @@ data SemanticErrors =
 
 data RuleNeedFixed = RNF {
   rnfRule :: !Rule,
-  rnfType :: ![SemanticErrors] }
+  rnfType :: !SemanticErrors }
   deriving (Eq, Show)
 
-data RSemanticFix = RSF { rsfRules :: ![Rule], rsfRNF :: ![RuleNeedFixed] }
+data RSemanticFix = RSF { rsfRules :: ![Rule],
+                          rsfRNF   :: ![RuleNeedFixed] }
                   | RSF_DONE { rsfRules :: [Rule] }
                   deriving (Eq, Show)
 
-data RSemanticFixer = RSFER {
-  predicate :: !(SemanticErrors -> Bool),
-  fixing       :: !(Rule -> Rule -> Rule) }
+data RSemanticFixer = RSFER { predicate :: !(SemanticErrors -> Bool),
+                              fixing       :: !(Rule -> Rule -> Rule) }
+                    | RSFER_ZERO
+
+instance Semigroup RSemanticFixer where
+  RSFER_ZERO <> f = f
+  f <> RSFER_ZERO = f
+  f <> f' = RSFER
+              -- Chaining predicate
+              (\x -> predicate f x || predicate f' x) $
+              \r1 r2 ->
+                -- Apply fixer f to rules
+                fixing f r1 r2 &
+                if r1 == r2
+                then \r -> fixing f' r r
+                else \r -> fixing f' r r2
+instance Monoid RSemanticFixer where
+  mempty = RSFER_ZERO
+  mconcat [] = RSFER_ZERO
+  mconcat (f:fs) = f <> mconcat fs
 
 doFix :: [RSemanticFixer] -> RSemanticFix -> RSemanticFix
-doFix _ (RSF rs []) = RSF_DONE rs
-doFix fixers (RSF rs (rnf:rnfs)) =
-  RSF (fixAllRule fixers rs rnf) rnfs & doFix fixers
+doFix _ (RSF_DONE rs) = RSF_DONE rs
+doFix fixers (RSF rs rnfs) =
+  RSF_DONE applyAllFixer
   where
-    fixAllRule :: [RSemanticFixer]
-                  -> [Rule]
-                  -> RuleNeedFixed
-                  -> [Rule]
-    fixAllRule _ [] _ = []
-    fixAllRule fixers (r:rs) rnf =
-      let matchFixers = filter (\fixer -> predicate fixer $ rnfType rnf) fixers
-      in  applyAllFixer matchFixers rnf r : fixAllRule fixers rs rnf
+    applyAllFixer :: [Rule]
+    applyAllFixer =
+      let -- Collapse RuleNeedFixed to a set that Cardinality equal to
+          -- the set of problem Rules.
+          problemRules = (S.toList . S.fromList $ [rnfRule a | a <- rnfs]) &
+                         flip collapseRNF rnfs
+          -- Mapping from [(Rule, [SemanticErrors])] to [(Rule, RSemanticFixer)]
+          chainedFixers = [BiF.second chainFixer r | r <- problemRules]
+      in applyToRules rs chainedFixers
 
-    applyAllFixer :: [RSemanticFixer] -> RuleNeedFixed -> Rule -> Rule
-    applyAllFixer [] _ r = r
-    applyAllFixer (fixer:fixers) rnf r =
-      fixing fixer r (rnfRule rnf) & applyAllFixer fixers rnf
+      where
+        applyToRules :: [Rule] -> [(Rule, RSemanticFixer)] -> [Rule]
+        applyToRules rs [] = rs
+        applyToRules rs' ((r', fixer):fixers') =
+          applyToRules (map (\r'' -> fixing fixer r'' r') rs') fixers'
+
+        collapseRNF :: [Rule] -> [RuleNeedFixed] -> [(Rule, [SemanticErrors])]
+        collapseRNF [] _ = []
+        collapseRNF (r:rs) rnfs =
+          (r, map rnfType $ filter (\x -> rnfRule x == r) rnfs) :
+          collapseRNF rs rnfs
+
+        chainFixer :: [SemanticErrors] -> RSemanticFixer
+        chainFixer [] = RSFER_ZERO
+        chainFixer (e:errors) =
+          case List.find (`predicate` e) fixers of
+            Nothing    -> RSFER_ZERO
+            Just fixer -> fixer <> chainFixer errors
 
 ruleSep :: String
 ruleSep = ";\n\n"
@@ -141,18 +176,10 @@ display =
       -- Find out terminal rule that disobey semantic
       -- of Antlr syntax.
       disobedientTerms
-      >>> (\x -> trace (show x) x)
       -- Fix differences
       >>> toAntlrTerminalForm
-      >>> (\x -> trace (show x) x)
 
       where
-        fixers :: [RSemanticFixer]
-        fixers = [
-          terminalToUpperCase,
-          removeDotInName
-          ]
-
         disobedientTerms :: [Rule] -> RSemanticFix
         disobedientTerms rs =
           RSF rs $
@@ -164,13 +191,22 @@ display =
 
         toAntlrTerminalForm :: RSemanticFix -> [Rule]
         toAntlrTerminalForm rsf =
-          case doFix fixers rsf of
+          case doFix registerfixers rsf of
             -- Failed to fixed
-            RSF _ _     -> []
+            RSF _ _    -> []
             RSF_DONE rs -> rs
 
 
--- Definition of Fixers
+-------------------------------------------------------------------------------
+--                            Definition of Fixers                           --
+-------------------------------------------------------------------------------
+
+-- Register your fixer to this list.
+registerfixers :: [RSemanticFixer]
+registerfixers = [
+  terminalToUpperCase,
+  removeDotInName
+  ]
 
 updateRefs :: String -> (RuleExpr -> RuleExpr) -> RuleExpr -> RuleExpr
 updateRefs n trans re =
@@ -180,7 +216,6 @@ updateRefs n trans re =
                     then trans re
                     else re
     _            -> re
-
 
 -- Remove dot in rule name by replacing all
 -- '.' by '_'
@@ -193,9 +228,8 @@ removeDotInName =
                   \case
                     SubExpr refName _ -> [refName == name r']
                     _                 -> [False]
-            in case ret of
-                 Nothing -> False
-                 Just bs -> foldl (||) False bs
+            in maybe False or ret
+
           fixedRule
             | referDisobeidient =
                 mapRule (updateRefs (name r') noDotTrans) r
@@ -204,13 +238,13 @@ removeDotInName =
       in fixedRule
   where
     noDot :: String -> String
-    noDot = map $ \c -> if c == '.'
-                        then '_'
-                        else c
+    noDot = map $ \c -> if c == '.' then '_' else c
 
     noDotTrans :: RuleExpr -> RuleExpr
-    noDotTrans (SubExpr n q) =
-      SubExpr (noDot n) q
+    noDotTrans r =
+      case r of
+        SubExpr n q -> SubExpr (noDot n) q
+        _           -> r
 
 -- Uppercase first character of terminal rule
 terminalToUpperCase :: RSemanticFixer
@@ -225,21 +259,21 @@ terminalToUpperCase =
                     \case
                       SubExpr refName _  -> [refName == ruleName]
                       _                  -> [False]
-        in  case ret of
-              Nothing -> False
-              Just bs -> foldl (||) False bs
+        in maybe False or ret
       currentRule
           -- Uppercase all references
         | referDisobeidient  =
             mapRule (updateRefs ruleName antlrTermNameTrans) r
         | name r == ruleName = r { name = toAntlrTermName $ name r}
-        | otherwise          = r
+        | otherwise = r
   in currentRule
 
   where
     antlrTermNameTrans :: RuleExpr -> RuleExpr
-    antlrTermNameTrans (SubExpr n q)  =
-      SubExpr (toAntlrTermName n) q
+    antlrTermNameTrans r =
+      case r of
+        SubExpr n q -> SubExpr (toAntlrTermName n) q
+        _           -> r
 
     toAntlrTermName :: String -> String
     toAntlrTermName name = toUpper (head name) : tail name

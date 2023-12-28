@@ -25,7 +25,7 @@ import Text.Parsec.String
 data Qualifier = Asterisk     -- Occurs zero or more times
                | Plus         -- Occurs one or more times
                | QuestionMark -- Occurs zoer or one times
-               deriving (Show, Eq)
+               deriving (Show, Eq, Ord)
 
 data RuleExpr = RExpr { exprs        :: ![RuleExpr] }
               | SubExpr { exprName   :: !String,
@@ -36,7 +36,7 @@ data RuleExpr = RExpr { exprs        :: ![RuleExpr] }
               | Group { groupExprs   :: ![RuleExpr],
                         qualifier    :: !(Maybe Qualifier) }
               | Vertical
-              deriving (Show, Eq)
+              deriving (Show, Eq, Ord)
 
 -- Internal datastructures for grammar rules
 -- that shown in grammarExample.txt
@@ -44,7 +44,7 @@ data Rule = Rule {
                 name       :: !String,
                 expr       :: ![RuleExpr],
                 isTerminal :: !Bool }
-            deriving (Show, Eq)
+            deriving (Show, Eq, Ord)
 
 mapRule :: (RuleExpr -> RuleExpr) -> Rule -> Rule
 mapRule f r = r { expr = map (traverse f) (expr r) }
