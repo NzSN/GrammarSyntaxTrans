@@ -269,7 +269,7 @@ trimHeadUnderscore =
           | referDisobeidient =
               (mapRule (updateRefs (name r') rmHeadUnderScoreTrans) r,
                updatedRule)
-          | name r == name r' = (updatedRule, updatedRule)
+          | name r == name r' = (r { name = removeHeadUnderScore $ name r }, updatedRule)
           | otherwise = (r,r')
     in fixedRule
   where
@@ -302,7 +302,7 @@ removeDotInName =
           fixedRule
             | referDisobeidient =
                 (mapRule (updateRefs (name r') noDotTrans) r, updatedRule)
-            | name r == name r' = (updatedRule, updatedRule)
+            | name r == name r' = (r { name = noDot $ name r }, updatedRule)
             | otherwise = (r,r')
       in fixedRule
   where
@@ -334,7 +334,7 @@ terminalToUpperCase =
           -- Uppercase all references
         | referDisobeidient  =
             (mapRule (updateRefs ruleName antlrTermNameTrans) r, updatedRule)
-        | name r == ruleName = (updatedRule, updatedRule)
+        | name r == ruleName = (r { name = toAntlrTermName $ name r }, updatedRule)
         | otherwise = (r,r')
   in currentRule
 
