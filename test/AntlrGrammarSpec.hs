@@ -82,14 +82,14 @@ spec_intro = hspec $ do
     it "BeginWithUnderscore" $ do
       let sourceCode = "_additive.operator:  \n\
                        \| `'+'` \n\
-                       \| expression "
+                       \| `'-'` "
           rule = parseGrammar sourceCode
       case rule of
         Nothing -> rule `shouldNotBe` Nothing
         Just r -> do
           let repr = AntlrRepl r
           noSpaces (show repr) `shouldBe`
-            noSpaces "Additive_operator: \n  '+'   \n| expression   ;\n\n"
+            noSpaces "Additive_operator: \n  '+'   \n| '-'   ;\n\n"
 
 
 
