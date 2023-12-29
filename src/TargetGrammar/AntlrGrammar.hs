@@ -5,7 +5,6 @@
 -- parsed by Antlr4.
 module TargetGrammar.AntlrGrammar (AntlrRepl(..), display) where
 
-import Debug.Trace (trace)
 import qualified Data.Bifunctor as BiF
 import qualified Data.Set as S
 import qualified Data.List as List
@@ -72,7 +71,7 @@ instance Semigroup RSemanticFixer where
       fixing' RSFER_ZERO _ = error "RSFER_ZERO no fixing function"
       fixing' (RSFER _ fix') tup = fix' tup
       fixing' (RSFER_WITHOU_P d fix') (r1,r2)
-        | trace (show $ d r2) (d r2) = fix' (r1,r2)
+        | d r2 = fix' (r1,r2)
         | otherwise = (r1,r2)
 
 instance Monoid RSemanticFixer where
