@@ -45,7 +45,7 @@ instance Semigroup RSemanticFixer where
   f <> RSFER_ZERO = f
   f <> f' = RSFER
               -- Chaining predicate
-              (\x -> predicate f x || predicate f' x) $
+              (\x -> predicate f x && predicate f' x) $
               \r1 r2 ->
                 -- Apply fixer f to rules
                 fixing f r1 r2 &
@@ -206,7 +206,6 @@ registerDetecters  = [
   (TerminalWithLowercase, \x -> isTerminal x && not (isUpper (head $ name x))),
   (InvalidCharInRule, elem '.' . name),
   (BeginWithUnderScore, \x -> '_' == head (name x))
-
   ]
 
 -- Register your fixer to this list.
