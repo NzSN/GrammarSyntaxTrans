@@ -22,7 +22,8 @@ newtype AntlrRepl = AntlrRepl { rules :: [Rule] }
 
 data SemanticErrors =
   TerminalWithLowercase |
-  InvalidCharInRule
+  InvalidCharInRule     |
+  BeginWithUnderScore
   deriving (Eq, Show)
 
 data RuleNeedFixed = RNF {
@@ -203,14 +204,17 @@ display =
 registerDetecters :: [(SemanticErrors,Rule -> Bool)]
 registerDetecters  = [
   (TerminalWithLowercase, \x -> isTerminal x && not (isUpper (head $ name x))),
-  (InvalidCharInRule, elem '.' . name)
-                     ]
+  (InvalidCharInRule, elem '.' . name),
+  (BeginWithUnderScore, \x -> '_' == head (name x))
+
+  ]
 
 -- Register your fixer to this list.
 registerfixers :: [RSemanticFixer]
 registerfixers = [
   terminalToUpperCase,
-  removeDotInName
+  removeDotInName,
+  trimHeadUnderscore
   ]
 
 updateRefs :: String -> (RuleExpr -> RuleExpr) -> RuleExpr -> RuleExpr
@@ -221,6 +225,11 @@ updateRefs n trans re =
                     then trans re
                     else re
     _            -> re
+
+trimHeadUnderscore :: RSemanticFixer
+trimHeadUnderscore =
+  RSFER (== BeginWithUnderScore) $
+  \r r' -> undefined
 
 -- Remove dot in rule name by replacing all
 -- '.' by '_'

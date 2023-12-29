@@ -74,6 +74,25 @@ spec_intro = hspec $ do
             noSpaces "Additive_operator: \n  '+'   \n| '-'   ;\n\n"
 
 
+    -- FIXME: Fixer still generate rule with semantic error
+    --        cause a fixer may only fix the head underscore,
+    --        which result in rule name in additive_operator.
+    --        Cause detecter unable to detect semantic error
+    --        during fixing.
+    it "BeginWithUnderscore" $ do
+      let sourceCode = "_additive.operator:  \n\
+                       \| `'+'` \n\
+                       \| expression "
+          rule = parseGrammar sourceCode
+      case rule of
+        Nothing -> rule `shouldNotBe` Nothing
+        Just r -> do
+          let repr = AntlrRepl r
+          noSpaces (show repr) `shouldBe`
+            noSpaces "Additive_operator: \n  '+'   \n| expression   ;\n\n"
+
+
+
   where
     noSpaces :: String -> String
     noSpaces = filter (\x -> x /= ' ' && x /= '\n')
