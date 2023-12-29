@@ -2,12 +2,19 @@ additive_operator:
 | `'+'`
 | `'-'`
 
+_template_args_start: `'<'`
+
+_template_args_end: `'>'`
+
 argument_expression_list:
 | `'('` ( expression ( `','` expression )* `','` ? )? `')'`
 
 assignment_statement:
 | compound_assignment_operator
 | `'='`
+
+ident_pattern_token:
+ `/([_\p{XID_Start}][\p{XID_Continue}]+)|([\p{XID_Start}])/u`
 
 attribute:
 | `'@'` `'align'` `'('` expression `','` ? `')'`
@@ -49,8 +56,8 @@ component_or_swizzle_specifier:
 | `'['` expression `']'` component_or_swizzle_specifier ?
 
 compound_assignment_operator:
-| shift_left_assign
-| shift_right_assign
+| `'<<='`
+| `'>>='`
 | `'%='`
 | `'&='`
 | `'*='`
@@ -130,6 +137,9 @@ hex_float_literal:
 ident:
 | ident_pattern_token
 
+hex_int_literal :
+ `/0[xX][0-9a-fA-F]+[iu]?/`
+
 int_literal:
 | decimal_int_literal
 | hex_int_literal
@@ -161,6 +171,22 @@ primary_expression:
 | ident template_elaborated_ident.post.ident `'('` ( expression ( `','` expression )* `','` ? )? `')'`
 | literal
 | `'('` expression `')'`
+
+greater_than: `'>'`
+
+greater_than_equal: `'>='`
+
+less_than: `'<'`
+
+less_than_equal: `'<='`
+
+shift_left: `'<<'`
+
+shift_right: `'>>'`
+
+break_statement: `'break'`
+
+continue_statement: `'continue'`
 
 relational_expression.post.unary_expression:
 | shift_expression.post.unary_expression
