@@ -5,6 +5,7 @@
 -- parsed by Antlr4.
 module TargetGrammar.AntlrGrammar (AntlrRepl(..), display) where
 
+import Debug.Trace (trace)
 import qualified Data.Bifunctor as BiF
 import qualified Data.Set as S
 import qualified Data.List as List
@@ -39,10 +40,10 @@ data RSemanticFix = RSF { rsfRules :: ![Rule],
                   deriving (Eq, Show)
 
 data RSemanticFixer = RSFER { predicate :: !(SemanticErrors -> Bool),
-                              fixing       :: !(Rule -> Rule -> Rule) }
+                              fixing       :: !((Rule,Rule) -> (Rule,Rule)) }
                       -- This kind of Fixer is for chained purposes
                     | RSFER_WITHOU_P { detect :: !(Rule -> Bool),
-                                       fixing :: !(Rule -> Rule -> Rule) }
+                                       fixing :: !((Rule,Rule) -> (Rule,Rule)) }
                     | RSFER_ZERO
 
 instance Semigroup RSemanticFixer where
@@ -60,19 +61,19 @@ instance Semigroup RSemanticFixer where
           RSFER p' _ -> RSFER p'
           RSFER_WITHOU_P  d' _ -> RSFER_WITHOU_P d
 
-    $ \r1 r2 ->
+    $ \(r1,r2) ->
         -- Apply fixer f to rules
-        fixing' f r1 r2 &
+        fixing' f (r1,r2) &
         if r1 == r2
-        then \r -> fixing' f' r r
-        else \r -> fixing' f' r r2
+        then \(r1',_) -> fixing' f' (r1',r1')
+        else \(r1',r2') -> fixing' f' (r1',r2')
 
     where
-      fixing' RSFER_ZERO _ _ = error "RSFER_ZERO no fixing function"
-      fixing' (RSFER p fix') r1 r2 = fix' r1 r2
-      fixing' (RSFER_WITHOU_P d fix') r1 r2
-        | d r1 = fix' r1 r2
-        | otherwise = r1
+      fixing' RSFER_ZERO _ = error "RSFER_ZERO no fixing function"
+      fixing' (RSFER _ fix') tup = fix' tup
+      fixing' (RSFER_WITHOU_P d fix') (r1,r2)
+        | trace (show $ d r2) (d r2) = fix' (r1,r2)
+        | otherwise = (r1,r2)
 
 instance Monoid RSemanticFixer where
   mempty = RSFER_ZERO
@@ -98,7 +99,7 @@ doFix fixers (RSF rs rnfs) =
         applyToRules :: [Rule] -> [(Rule, RSemanticFixer)] -> [Rule]
         applyToRules rs [] = rs
         applyToRules rs' ((r', fixer):fixers') =
-          applyToRules (map (\r'' -> fixing fixer r'' r') rs') fixers'
+          applyToRules (map (\r'' -> fst $ fixing fixer (r'',r')) rs') fixers'
 
         collapseRNF :: [Rule] -> [RuleNeedFixed] -> [(Rule, [SemanticErrors])]
         collapseRNF [] _ = []
@@ -256,19 +257,21 @@ updateRefs n trans re =
 trimHeadUnderscore :: RSemanticFixer
 trimHeadUnderscore =
   RSFER (== BeginWithUnderScore) $
-  \r r' ->
+  \(r,r') ->
     let referDisobeidient =
           let ret = ruleTraverse r $
                     \case
                       SubExpr refName _ -> [refName == name r']
                       _                 -> [False]
           in maybe False or ret
+        updatedRule = r' { name = removeHeadUnderScore $ name r' }
 
         fixedRule
           | referDisobeidient =
-              mapRule (updateRefs (name r') rmHeadUnderScoreTrans) r
-          | name r == name r' = r { name = removeHeadUnderScore $ name r }
-          | otherwise = r
+              (mapRule (updateRefs (name r') rmHeadUnderScoreTrans) r,
+               updatedRule)
+          | name r == name r' = (updatedRule, updatedRule)
+          | otherwise = (r,r')
     in fixedRule
   where
     removeHeadUnderScore :: String -> String
@@ -289,19 +292,19 @@ trimHeadUnderscore =
 removeDotInName :: RSemanticFixer
 removeDotInName =
     RSFER (== InvalidCharInRule) $
-    \r r' ->
+    \(r,r') ->
       let referDisobeidient =
             let ret = ruleTraverse r $
                   \case
                     SubExpr refName _ -> [refName == name r']
                     _                 -> [False]
             in maybe False or ret
-
+          updatedRule = r' { name = noDot $ name r' }
           fixedRule
             | referDisobeidient =
-                mapRule (updateRefs (name r') noDotTrans) r
-            | name r == name r' = r { name = noDot $ name r }
-            | otherwise = r
+                (mapRule (updateRefs (name r') noDotTrans) r, updatedRule)
+            | name r == name r' = (updatedRule, updatedRule)
+            | otherwise = (r,r')
       in fixedRule
   where
     noDot :: String -> String
@@ -317,7 +320,7 @@ removeDotInName =
 terminalToUpperCase :: RSemanticFixer
 terminalToUpperCase =
   RSFER (== TerminalWithLowercase) $
-  \r r' ->
+  \(r,r') ->
   -- Traverse the rule to check that whether
   -- it's referece to the disobeydient rule
   let ruleName = name r'
@@ -327,14 +330,14 @@ terminalToUpperCase =
                       SubExpr refName _  -> [refName == ruleName]
                       _                  -> [False]
         in maybe False or ret
+      updatedRule = r' { name = toAntlrTermName $ name r' }
       currentRule
           -- Uppercase all references
         | referDisobeidient  =
-            mapRule (updateRefs ruleName antlrTermNameTrans) r
-        | name r == ruleName = r { name = toAntlrTermName $ name r}
-        | otherwise = r
+            (mapRule (updateRefs ruleName antlrTermNameTrans) r, updatedRule)
+        | name r == ruleName = (updatedRule, updatedRule)
+        | otherwise = (r,r')
   in currentRule
-
 
   where
     antlrTermNameTrans :: RuleExpr -> RuleExpr

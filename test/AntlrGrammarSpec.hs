@@ -47,7 +47,9 @@ spec_intro = hspec $ do
         Just r -> do
           let repr = AntlrRepl r
           noSpaces (show repr) `shouldBe`
-            noSpaces "Additive_operator: \n  '+'   \n| '-'   ;\n\n Op: '++' ;\n\n expr: Additive_operator Op;\n\n irrelevant: anotherExpr;"
+            noSpaces "Additive_operator: \n  '+'   \n| '-'   ;\n\n \
+                      \Op: '++' ;\n\n expr: Additive_operator Op;\n\n \
+                      \irrelevant: anotherExpr;"
 
     it "RuleNameContainDots" $ do
       let sourceCode = "additive.operator:  \n\
@@ -80,16 +82,19 @@ spec_intro = hspec $ do
     --        Cause detecter unable to detect semantic error
     --        during fixing.
     it "BeginWithUnderscore" $ do
-      let sourceCode = "_additive.operator:  \n\
-                       \| `'+'` \n\
-                       \| `'-'` "
+      let sourceCode = "_additive.operator:   \n\
+                       \| `'+'`              \n\
+                       \| `'-'`              \n\
+                       \ref:                 \n\
+                       \| _additive.operator"
           rule = parseGrammar sourceCode
       case rule of
         Nothing -> rule `shouldNotBe` Nothing
         Just r -> do
           let repr = AntlrRepl r
           noSpaces (show repr) `shouldBe`
-            noSpaces "Additive_operator: \n  '+'   \n| '-'   ;\n\n"
+            noSpaces "Additive_operator: \n  '+'   \n| '-'   \
+                     \ ;\n\n ref: Additive_operator; \n\n"
 
 
 
