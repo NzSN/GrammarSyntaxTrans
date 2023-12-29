@@ -2,9 +2,13 @@ additive_operator:
 | `'+'`
 | `'-'`
 
-_template_args_start: `'<'`
+left_angle: `'<'`
 
-_template_args_end: `'>'`
+right_angle: `'>'`
+
+_template_args_start: left_angle
+
+_template_args_end: right_angle
 
 argument_expression_list:
 | `'('` ( expression ( `','` expression )* `','` ? )? `')'`
@@ -172,11 +176,11 @@ primary_expression:
 | literal
 | `'('` expression `')'`
 
-greater_than: `'>'`
+greater_than: right_angle
 
 greater_than_equal: `'>='`
 
-less_than: `'<'`
+less_than: left_angle
 
 less_than_equal: `'<='`
 
