@@ -182,12 +182,13 @@ display =
       where
         disobedientTerms :: [Rule] -> RSemanticFix
         disobedientTerms rs =
-          RSF rs $
-            (flip RNF TerminalWithLowercase <$>
-               filter (\x -> isTerminal x && not (isUpper (head $ name x))) rs)
-              <>
-              -- Currently '.' is the only invalid character we want to find out.
-              (flip RNF InvalidCharInRule <$> filter (elem '.' . name) rs)
+          RSF rs $ mconcat toFixContexts
+          where
+            toFixContexts =
+              map
+              (\(errorType, predicate) ->
+                  map (`RNF` errorType) $ filter predicate rs)
+              registerDetecters
 
         toAntlrTerminalForm :: RSemanticFix -> [Rule]
         toAntlrTerminalForm rsf =
@@ -196,10 +197,14 @@ display =
             RSF _ _    -> []
             RSF_DONE rs -> rs
 
-
 -------------------------------------------------------------------------------
 --                            Definition of Fixers                           --
 -------------------------------------------------------------------------------
+registerDetecters :: [(SemanticErrors,Rule -> Bool)]
+registerDetecters  = [
+  (TerminalWithLowercase, \x -> isTerminal x && not (isUpper (head $ name x))),
+  (InvalidCharInRule, elem '.' . name)
+                     ]
 
 -- Register your fixer to this list.
 registerfixers :: [RSemanticFixer]
