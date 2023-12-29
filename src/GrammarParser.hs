@@ -106,7 +106,8 @@ spaces'' = char ' ' <|> char '\t'
 rule :: GenParser Char st Rule
 rule = do
   skipMany (try spaces'')
-  ruleID <- many1 (noneOf ":")
+  ruleID <- many1 (noneOf " :")
+  skipMany (try spaces'')
 
   -- Discard unused characters
   string ":"
