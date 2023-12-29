@@ -8,6 +8,7 @@ module GrammarParser (
   ruleTraverse,
   mapRule) where
 
+import Debug.Trace (trace)
 import Data.Maybe
 import Text.Parsec
 import Text.Parsec.String
@@ -212,7 +213,8 @@ regexElem = do
   -- Assume that there are no escapes
   _ <- string "`/"
   regex <- many (noneOf "/")
-  _ <- string "/`"
+  _ <- try (string "/`") <|>
+       string "/u`"
 
   return $ Just $ Regex regex
 
