@@ -1,4 +1,4 @@
-{-# LANGUAGE  LambdaCase #-}
+{-# LANGUAGE  LambdaCase, InstanceSigs #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
 -- Utility to transform Rule into format that able to
@@ -46,6 +46,7 @@ data RSemanticFixer = RSFER { predicate :: !(SemanticErrors -> Bool),
                     | RSFER_ZERO
 
 instance Semigroup RSemanticFixer where
+  (<>) :: RSemanticFixer -> RSemanticFixer -> RSemanticFixer
   RSFER_ZERO <> f = f
   f <> RSFER_ZERO = f
 
