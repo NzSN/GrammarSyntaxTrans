@@ -51,6 +51,16 @@ executables:
     dependencies:
     - GrammarSyntaxTrans
 
+  cpp_gen:
+    main:               Main.hs
+    source-dirs:        CPPGenerater
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - GrammarSyntaxTrans
+
 tests:
   GrammarSyntaxTrans-test:
     main:                Spec.hs
