@@ -21,6 +21,8 @@ import GrammarParser (
   mapRule)
 
 newtype AntlrRepl = AntlrRepl { rules :: [Rule] }
+instance Show AntlrRepl where
+  show = display
 
 data SemanticErrors =
   TerminalWithLowercase |
@@ -348,7 +350,3 @@ terminalToUpperCase =
 
     toAntlrTermName :: String -> String
     toAntlrTermName name = toUpper (head name) : tail name
-
-
-instance Show AntlrRepl where
-  show = display

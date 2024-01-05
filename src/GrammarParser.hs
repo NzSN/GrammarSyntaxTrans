@@ -6,6 +6,7 @@ module GrammarParser (
   RuleExpr(..),
   parseGrammar,
   ruleTraverse,
+  ruleTraverse',
   mapRule) where
 
 import Debug.Trace (trace)
@@ -59,6 +60,9 @@ mapRule f r = r { expr = map (traverse f) (expr r) }
         Regex   _   -> f' r'
         Group es q  -> Group (map (traverse f) es) q
         Vertical    -> f' r'
+
+ruleTraverse' :: Monoid b => Rule -> (RuleExpr -> b) -> b
+ruleTraverse' r f = fromMaybe mempty (ruleTraverse r f)
 
 ruleTraverse :: Monoid b => Rule -> (RuleExpr -> b) -> Maybe b
 ruleTraverse r = doTraverse (expr r)
